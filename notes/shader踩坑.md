@@ -25,18 +25,22 @@ vec3 和 vec4 必须对齐到 16 字节边界。
 如果是 vec3，会自动填充到 16 字节。
 
 **错误示例：**
-`uniform Props {
+```glsl
+uniform Props {
   float u_radius;        // 4 字节
   vec2 u_custom_radius;  // 需要对齐到 8 字节边界
   int is_custom_radius;  // 4 字节，但可能被填充到 8 字节边界
-};`
+};
+```
 
 **正确示例：**
-`uniform Props {
+```glsl
+uniform Props {
   vec2 u_custom_radius;  // 需要对齐到 8 字节边界，放在最前面
   float u_radius;        // 4 字节，放在后面
   int is_custom_radius;  // 4 字节，放在最后
-};`
+};
+```
 
 ### 2. 坐标原点问题
 
@@ -59,7 +63,7 @@ void main() {
 }
 ```
 测试结果为：
-![alt text](../resource/image/shader_image01.png)
+![测试结果](../resource/image/shader_image01.png)
 
 可以看到，左下角为绿色(0,1),左上角为黑色(0,0),右上角为红色(1,0)，右下角为黄色(1,1)
 

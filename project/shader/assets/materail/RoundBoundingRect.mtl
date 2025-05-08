@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "RoundBoundingRect",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "2df5bac4-e267-47c0-a667-947a5ac561d6"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}

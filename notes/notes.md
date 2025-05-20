@@ -25,6 +25,7 @@
 - cocos shader合集
 - 如何定制cocos自动化打包工具
 - shader踩坑合集
+- cocos图像处理专精
 
 ## 游戏开发
 

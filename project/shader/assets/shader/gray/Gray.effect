@@ -1,0 +1,101 @@
+// Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+
+CCEffect %{
+techniques:
+  - passes:
+      - vert: vs
+        frag: fs
+        blendState:
+          targets:
+            - blend: true
+        rasterizerState:
+          cullMode: none
+        properties:
+          texture: { value: white }
+          alphaThreshold: { value: 0.5 }
+          gray: { value: 0.5 }
+}%
+
+
+CCProgram vs %{
+precision highp float;
+
+#include <cc-global>
+#include <cc-local>
+
+in vec3 a_position; //输入顶点位置
+in vec4 a_color; //输入顶点颜色
+out vec4 v_color; //输出顶点颜色
+
+#if USE_TEXTURE
+  in vec2 a_uv0; //输入纹理坐标
+  out vec2 v_uv0; //输出纹理坐标
+#endif
+
+void main() {
+  vec4 pos = vec4(a_position, 1); //将输入顶点位置转换为齐次坐标
+  
+  #if CC_USE_MODEL
+    pos = cc_matViewProj * cc_matWorld * pos; //将顶点位置乘以视图投影矩阵和世界矩阵
+  #else
+    pos = cc_matViewProj * pos; //将顶点位置乘以视图投影矩阵
+  #endif
+  
+  #if USE_TEXTURE
+    v_uv0 = a_uv0; //将输入纹理坐标赋值给输出纹理坐标
+  #endif
+  
+  v_color = a_color; //将输入顶点颜色赋值给输出顶点颜色
+  
+  gl_Position = pos; //将顶点位置赋值给gl_Position
+}
+}%
+
+
+CCProgram fs %{
+precision highp float;
+
+#include <alpha-test>
+#include <texture>
+
+in vec4 v_color; //输入顶点颜色
+uniform GrayUniforms{
+  float gray; //灰度值
+};
+
+#if USE_TEXTURE
+  in vec2 v_uv0; //输入纹理坐标
+  uniform sampler2D texture; //纹理采样器
+#endif
+
+void main() {
+  vec4 o = vec4(1, 1, 1, 1); //初始化颜色为白色
+  
+  #if USE_TEXTURE
+    o *= texture(texture, v_uv0); //将纹理颜色乘以纹理采样器，得到纹理颜色
+    #if CC_USE_ALPHA_ATLAS_TEXTURE
+      o.a *= texture2D(texture, v_uv0 + vec2(0, 0.5)).r; //如果使用alpha纹理，将alpha值乘以纹理采样器
+    #endif
+  #endif
+
+  float grayValue = (o.r + o.g + o.b) / 3.0;
+  
+  if(grayValue > gray + 0.1){
+    o = vec4(0, 0, 0, 1); // 大于阈值显示黑色
+  }
+  else if(grayValue > gray - 0.1){
+    o = vec4(grayValue, grayValue, grayValue, 1); // 中间范围显示灰色
+  }
+  else{
+    o = vec4(1, 1, 1, 1); // 小于阈值显示白色
+  }
+  
+  ALPHA_TEST(o); //进行alpha测试
+  
+  #if USE_BGRA
+    gl_FragColor = o.bgra;
+  #else
+    gl_FragColor = o.rgba;
+  #endif
+}
+}%

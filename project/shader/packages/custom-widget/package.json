@@ -2,7 +2,7 @@
   "name": "custom-widget",
   "version": "0.0.1",
   "description": "The package template for getting started.",
-  "author": "Cocos Creator",
+  "author": "FengqiChangAn",
   "main": "main.js",
   "main-menu": {
     "i18n:MAIN_MENU.package.title/custom-widget/open": {

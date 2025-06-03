@@ -11,31 +11,51 @@
 
     <!-- 顶部选项卡 -->
     <div class="tabs">
-        <div class="tab active">内置控件</div>
-        <div class="tab">云组件</div>
-        <div class="tab">自定义控件</div>
+        <!-- 内置控件菜单 -->
+        <button @click="showContent('render-node')" class="menu-item">内置控件</button>
+
+        <!-- 云组件菜单 -->
+        <button @click="showContent('cloud1')" class="menu-item">云组件</button>
+
+        <!-- 自定义控件菜单 -->
+        <button @click="showContent('custom1')" class="menu-item">自定义控件</button>
     </div>
     <!-- 内容区域 -->
     <div class="content">
 
-        <div class="resource-list">
-            <!-- 内置控件菜单 -->
-            <button @click="showContent('render-node')" class="menu-item">
-                <div class="menu-item">渲染节点</div>
-                <div class="menu-item">UI</div>
-            </button>
-
-            <!-- 云组件菜单 -->
-            <button @click="showContent('cloud1')" class="menu-item">
-                <div class="menu-item">云组件1</div>
-            </button>
-
-            <!-- 自定义控件菜单 -->
-            <button @click="showContent('custom1')" class="menu-item">
-                <div class="menu-item">自定义1</div>
-                <div class="menu-item">自定义2</div>
-            </button>
+        <div class="list01">
+            <div class="group">
+                <div class="group-title">UI</div>
+                <div class="group-content">
+                    <div class="group-item">
+                        <div class="item-icon">
+                            <img src="images/button.png" alt="按钮">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="group">
+                <div class="group-title">渲染节点</div>
+                <div class="group-content">
+                    <div class="group-item">
+                        <div class="item-icon">
+                            <img src="images/button.png" alt="按钮">
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <div class="list02">
+
+        </div>
+
+        <div class="list03">
+
+        </div>
+
+    </div>
+
 
 </body>
 

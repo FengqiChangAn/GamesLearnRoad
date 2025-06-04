@@ -10,16 +10,12 @@
 <body>
 
     <!-- 顶部选项卡 -->
-    <div class="tabs">
-        <!-- 内置控件菜单 -->
-        <button @click="showContent('render-node')" class="menu-item">内置控件</button>
-
-        <!-- 云组件菜单 -->
-        <button @click="showContent('cloud1')" class="menu-item">云组件</button>
-
-        <!-- 自定义控件菜单 -->
-        <button @click="showContent('custom1')" class="menu-item">自定义控件</button>
+    <div id="tabs">
+        <button data-category="builtin">内置控件</button>
+        <button data-category="cloud">云组件</button>
+        <button data-category="custom">自定义控件</button>
     </div>
+    
     <!-- 内容区域 -->
     <div class="content">
 

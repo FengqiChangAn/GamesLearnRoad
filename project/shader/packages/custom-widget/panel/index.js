@@ -1,29 +1,25 @@
+const { readFileSync } = require('fs');
+const { join } = require('path');
+
+const PACKAGE_PATH = Editor.url(`packages://custom-widget/`);
+const DIR_PATH = join(PACKAGE_PATH, 'panel/');
+
 // panel/index.js, this filename needs to match the one registered in package.json
 Editor.Panel.extend({
   // css style for panel
-  style: `
-    :host { margin: 5px; }
-    h2 { color: #f90; }
-  `,
+  style: readFileSync(join(DIR_PATH, 'index.css')) + '',
 
   // html template for panel
-  template: `
-    <h2>custom-widget</h2>
-    <hr />
-    <div>State: <span id="label">--</span></div>
-    <hr />
-    <ui-button id="btn">Send To Main</ui-button>
-  `,
+  template: readFileSync(join(DIR_PATH, 'index.html')) + '',
 
   // element and variable binding
   $: {
-    btn: '#btn',
-    label: '#label',
+    tabs: '#tabs',
   },
 
   // method executed when template and styles are successfully loaded and initialized
   ready () {
-    this.$btn.addEventListener('confirm', () => {
+    this.$tabs.addEventListener('click', (e) => {
       Editor.Ipc.sendToMain('custom-widget:clicked');
     });
   },
@@ -31,7 +27,7 @@ Editor.Panel.extend({
   // register your ipc messages here
   messages: {
     'custom-widget:hello' (event) {
-      this.$label.innerText = 'Hello!';
+      Editor.log('Hello!');
     }
   }
 });

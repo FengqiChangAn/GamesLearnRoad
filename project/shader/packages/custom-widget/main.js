@@ -2,22 +2,24 @@
 
 module.exports = {
   load () {
-    // execute when package loaded
+    // 在 package 加载时执行
+    Editor.log('custom-widget package loaded');
   },
 
   unload () {
-    // execute when package unloaded
+    // 在 package 卸载时执行
+    Editor.log('custom-widget package unloaded');
   },
 
-  // register your ipc messages here
+  // 注册你的 ipc 消息
   messages: {
     'open' () {
-      // open entry panel registered in package.json
+      // 打开 package.json 中注册的 entry panel
       Editor.Panel.open('custom-widget');
     },
     'say-hello' () {
       Editor.log('Hello World!');
-      // send ipc message to panel
+      // 发送 ipc 消息到 panel
       Editor.Ipc.sendToPanel('custom-widget', 'custom-widget:hello');
     },
     'clicked' () {

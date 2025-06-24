@@ -43,6 +43,7 @@ Editor.Panel.extend({
   },
 
   // 注册你的 ipc 消息
+  // 卡在如何监听资源拖动事件
   messages: {
     'custom-widget:hello'(event) {
       Editor.log('Hello!');

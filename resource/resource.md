@@ -26,12 +26,20 @@
 ## 资源网站
 - [免费电子书](http://book.p.starxy.cc/?data=root&sort_param=stored)
 - [免费格式转换](https://convertio.co/zh/)
-
+- [在线去除背景](https://www.remove.bg/zh)
+- [压缩音频mp3](https://www.youcompress.com/zh-cn/mp3/)
+- [各种格式音频压缩](https://products.aspose.app/audio/zh-cn/compress/aac#google_vignette)
 ## cocos
 
 - [自定义渲染框架](https://gitee.com/nomat/lcc-render)
 - [cocos扩展](https://oedx.github.io/2020/06/30/cocos-creator-extensions/)
 - [cocos shader入门](https://mp.weixin.qq.com/s?__biz=MjM5ODAxNTM2NA==&mid=2659671344&idx=1&sn=c5374abeed6a4108dac45698e91e4dd9&chksm=bda2c5db8ad54ccd53266326d90c8191eff83dd15b5200658d5951b83fc3a058e1c3a0783cea&cur_album_id=2083238880157188100&scene=189#wechat_redirect)
+- [cocos优秀开源框架](https://mp.weixin.qq.com/s/MzP-6P6uiddm3ckrISvmkg)
+
+## unity
+
+-[ecs学习框架](https://github.com/Unity-Technologies/EntityComponentSystemSamples#)
+-[Unity ECS 示例和教程](https://unity.com/cn/ecs)
 
 
 

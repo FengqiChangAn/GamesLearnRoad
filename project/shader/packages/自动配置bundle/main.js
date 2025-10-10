@@ -8,7 +8,8 @@ if (!Editor.__Menu__) {
   Editor.__Menu__ = Editor.Menu;
 };
 
-
+//参考文档
+//https://forum.cocos.org/t/topic/145745
 module.exports = {
   load() {
     // execute when package loaded

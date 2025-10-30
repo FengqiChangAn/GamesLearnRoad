@@ -1,0 +1,21 @@
+{
+  "__type__": "cc.Material",
+  "_name": "sprite2d",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "d7dd34c4-817e-4938-bbce-2cef730469ad"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {},
+      "props": {
+        "dissolveThreshold": 0.4000000000000002,
+        "dissolveMap": {
+          "__uuid__": "f3cb7576-a4a7-4f91-97e8-eb58bb114ec3"
+        }
+      }
+    }
+  }
+}

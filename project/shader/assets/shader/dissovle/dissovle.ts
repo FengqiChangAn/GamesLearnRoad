@@ -60,7 +60,7 @@ export default class Dissolve extends cc.Component {
 
     /** UV动画速度 */
     @property(cc.Vec2)
-    uvSpeed: cc.Vec2 = cc.v2(0.0, -0.1); // 默认向上滚动
+    uvSpeed: cc.Vec2 = cc.v2(0.0, 0.55); // 默认向上滚动
 
     private _material: cc.Material = null;
 
@@ -103,20 +103,6 @@ export default class Dissolve extends cc.Component {
         }
     }
 
-    private updateMaterialProperties() {
-        if (this._material) {
-            // 将 cc.Color (0-255) 转换为 shader 需要的 0-1 范围
-            const edgeColorVec4 = new cc.Vec4(
-                this.edgeColor.getR() / 255,
-                this.edgeColor.getG() / 255,
-                this.edgeColor.getB() / 255,
-                this.edgeColor.getA() / 255
-            );
-            this._material.setProperty('edgeColor', edgeColorVec4);
-            this._material.setProperty('uvSpeed', this.uvSpeed);
-        }
-    }
-
     protected update(dt: number): void {
         if (!this.isDissolve) return;
 
@@ -124,8 +110,5 @@ export default class Dissolve extends cc.Component {
         if (this.dissolveThreshold >= 1) {
             this.dissolveThreshold = 0;
         }
-
-        // 更新材质属性（用于响应编辑器中的属性变化）
-        // this.updateMaterialProperties();
     }
 }

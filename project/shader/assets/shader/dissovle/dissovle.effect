@@ -17,7 +17,7 @@ CCEffect %{
         edgeWidth: { value: 0.1, slider: true, editor: { range: [0, 0.3, 0.01] } } # 边缘宽度
         glowIntensity: { value: 1.0, slider: true, editor: { range: [0, 3, 0.1] } } # 发光强度
         edgeColor: { value: [1.0, 0.3, 0.0, 1.0], editor: { type: color } } # 边缘颜色（默认燃烧色）
-        uvSpeed: { value: [0.0, 0.0], editor: { type: vec2 } } # UV动画速度
+        uvSpeed: { value: [0.0, 1.0], editor: { type: vec2 } } # UV动画速度
 }%
  
  
@@ -79,7 +79,9 @@ CCProgram fs %{
     o *= v_color;
 
     // UV动画偏移
-    vec2 uvOffset = v_uv0 + cc_time.y * uvSpeed;
+    vec2 uvOffset = v_uv0 + cc_time.x * uvSpeed;
+    uvOffset.x = fract(uvOffset.x);
+    uvOffset.y = fract(uvOffset.y);
     vec4 dissolveColor = texture(dissolveMap, uvOffset);
     
     float dissolveValue = dissolveColor.r;

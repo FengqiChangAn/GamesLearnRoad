@@ -14,6 +14,10 @@ CCEffect %{
         texture: { value: white }
         dissolveMap: { value: white } # 溶解贴图
         dissolveThreshold: { value: 0.5, slider: true, editor: { range: [0, 1, 0.01] } }
+        edgeWidth: { value: 0.1, slider: true, editor: { range: [0, 0.3, 0.01] } } # 边缘宽度
+        glowIntensity: { value: 1.0, slider: true, editor: { range: [0, 3, 0.1] } } # 发光强度
+        edgeColor: { value: [1.0, 0.3, 0.0, 1.0], editor: { type: color } } # 边缘颜色（默认燃烧色）
+        uvSpeed: { value: [0.0, 0.0], editor: { type: vec2 } } # UV动画速度
 }%
  
  
@@ -57,7 +61,16 @@ CCProgram fs %{
   uniform sampler2D dissolveMap;
   uniform DissolveUniforms{
     float dissolveThreshold; // 溶解阈值
+    float edgeWidth; // 边缘宽度
+    float glowIntensity; // 发光强度
   };
+
+  uniform EdgeColorUniforms{
+    vec4 edgeColor; // 边缘颜色
+    vec2 uvSpeed; // UV动画速度
+  };
+
+  #include <cc-global>
  
   void main () {
     vec4 o = vec4(1, 1, 1, 1);
@@ -65,15 +78,42 @@ CCProgram fs %{
     CCTexture(texture, v_uv0, o);
     o *= v_color;
 
-    vec4 dissolveColor = texture(dissolveMap, v_uv0);
-    if(dissolveColor.r < dissolveThreshold){
+    // UV动画偏移
+    vec2 uvOffset = v_uv0 + cc_time.y * uvSpeed;
+    vec4 dissolveColor = texture(dissolveMap, uvOffset);
+    
+    float dissolveValue = dissolveColor.r;
+    
+    // 计算边缘区域（使用smoothstep实现平滑过渡）
+    float edgeStart = dissolveThreshold;
+    float edgeEnd = dissolveThreshold + edgeWidth;
+    float edgeFactor = smoothstep(edgeStart, edgeEnd, dissolveValue);
+    
+    // 如果完全溶解，则舍弃像素
+    if(dissolveValue < dissolveThreshold){
       discard;
-    }else if(dissolveColor.r > dissolveThreshold && dissolveColor.r < dissolveThreshold + 0.05){
-      o.a = 0.5;
-    }else if(dissolveColor.r > dissolveThreshold + 0.05 && dissolveColor.r < dissolveThreshold + 0.1){
-      o.a = 0.75;
     }
- 
+    
+    // 计算边缘发光效果
+    float glowFactor = 0.0;
+    if(dissolveValue < edgeEnd) {
+      // 计算从边缘到内部的距离
+      float distToEdge = edgeEnd - dissolveValue;
+      // 归一化到0-1范围
+      float normalizedDist = distToEdge / edgeWidth;
+      // 使用平滑函数计算发光强度，靠近阈值的地方发光最强
+      glowFactor = (1.0 - normalizedDist) * glowIntensity;
+    }
+    
+    // 混合边缘颜色（燃烧效果：在边缘区域混合边缘颜色）
+    if(glowFactor > 0.0) {
+      // 边缘颜色混合强度：越靠近阈值越强
+      float edgeBlend = smoothstep(edgeEnd, edgeStart, dissolveValue);
+      o.rgb = mix(o.rgb, edgeColor.rgb, edgeBlend * edgeColor.a * glowFactor);
+      // 增强边缘亮度
+      o.rgb += edgeColor.rgb * glowFactor * 0.5;
+    }
+
     gl_FragColor = o.rgba;
   }
 }%

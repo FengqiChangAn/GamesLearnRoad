@@ -846,7 +846,7 @@
       "__id__": 16
     },
     "_enabled": true,
-    "_dissolveThreshold": 0.009210000014354593,
+    "_dissolveThreshold": 0.20859999995263934,
     "isDissolve": true,
     "_edgeWidth": 0.3,
     "_glowIntensity": 2.5,
@@ -862,6 +862,12 @@
       "x": 0,
       "y": -0.1
     },
+    "_fragmentSize": 0.1,
+    "_burnIntensity": 2,
+    "_sparkleIntensity": 1.1,
+    "_fragmentOffset": 0.6,
+    "_fragmentRotation": 3.9,
+    "_fragmentSpeed": 3,
     "_id": "343bVJAnZH2o6KOGdO8x6s"
   },
   {

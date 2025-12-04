@@ -18,6 +18,12 @@ CCEffect %{
         glowIntensity: { value: 1.0, slider: true, editor: { range: [0, 3, 0.1] } } # 发光强度
         edgeColor: { value: [1.0, 0.3, 0.0, 1.0], editor: { type: color } } # 边缘颜色（默认燃烧色）
         uvSpeed: { value: [0.0, 1.0], editor: { type: vec2 } } # UV动画速度
+        fragmentSize: { value: 0.1, slider: true, editor: { range: [0.05, 0.3, 0.01] } } # 碎片大小
+        burnIntensity: { value: 2.0, slider: true, editor: { range: [0, 5, 0.1] } } # 燃烧强度
+        sparkleIntensity: { value: 0.5, slider: true, editor: { range: [0, 2, 0.1] } } # 火花强度
+        fragmentOffset: { value: 0.2, slider: true, editor: { range: [0, 1, 0.01] } } # 碎片偏移强度
+        fragmentRotation: { value: 1.0, slider: true, editor: { range: [0, 5, 0.1] } } # 碎片旋转强度
+        fragmentSpeed: { value: 1.0, slider: true, editor: { range: [0, 3, 0.1] } } # 碎片运动速度
 }%
  
  
@@ -63,6 +69,12 @@ CCProgram fs %{
     float dissolveThreshold; // 溶解阈值
     float edgeWidth; // 边缘宽度
     float glowIntensity; // 发光强度
+    float fragmentSize; // 碎片大小
+    float burnIntensity; // 燃烧强度
+    float sparkleIntensity; // 火花强度
+    float fragmentOffset; // 碎片偏移强度
+    float fragmentRotation; // 碎片旋转强度
+    float fragmentSpeed; // 碎片运动速度
   };
 
   uniform EdgeColorUniforms{
@@ -72,24 +84,77 @@ CCProgram fs %{
 
   #include <cc-global>
  
-  void main () {
-    vec4 o = vec4(1, 1, 1, 1);
+  // 生成伪随机数
+  float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+  }
 
+  // 2D旋转矩阵
+  mat2 rotate2d(float angle) {
+    return mat2(cos(angle), -sin(angle),
+                sin(angle), cos(angle));
+  }
+
+  void main () {
+    // 碎片分割计算
+    vec2 fragmentUV = v_uv0 / fragmentSize;
+    vec2 fragmentID = floor(fragmentUV);
+    vec2 fragmentLocalUV = fract(fragmentUV);
+    
+    // 计算碎片中心（归一化到0-1）
+    vec2 fragmentCenter = (fragmentID + 0.5) * fragmentSize;
+    
+    // 为每个碎片生成唯一的随机值
+    float fragmentRandom1 = random(fragmentID);
+    float fragmentRandom2 = random(fragmentID + vec2(100.0, 0.0));
+    float fragmentRandom3 = random(fragmentID + vec2(0.0, 100.0));
+    float fragmentRandom4 = random(fragmentID + vec2(50.0, 50.0));
+    
+    // 计算碎片偏移（随时间变化）
+    float time = cc_time.x * fragmentSpeed;
+    vec2 fragmentOffsetVec = vec2(
+      (fragmentRandom1 - 0.5) * 2.0,
+      (fragmentRandom2 - 0.5) * 2.0
+    ) * fragmentOffset * time;
+    
+    // 计算碎片旋转
+    float fragmentAngle = (fragmentRandom3 - 0.5) * 6.28 * fragmentRotation * time;
+    
+    // 将UV坐标转换到碎片局部空间（以碎片中心为原点）
+    vec2 localUV = fragmentLocalUV - 0.5;
+    
+    // 应用旋转
+    localUV = rotate2d(fragmentAngle) * localUV;
+    
+    // 转换回全局UV空间
+    vec2 transformedUV = fragmentCenter + localUV + fragmentOffsetVec;
+    
+    // 检查变换后的UV是否超出边界（碎片飘散效果）
+    if(transformedUV.x < 0.0 || transformedUV.x > 1.0 || 
+       transformedUV.y < 0.0 || transformedUV.y > 1.0) {
+      discard;
+    }
+
+    vec4 o = vec4(1, 1, 1, 1);
+    
+    // 使用原始UV采样纹理（保持原始图像）
     CCTexture(texture, v_uv0, o);
     o *= v_color;
 
-    // UV动画偏移
+    // UV动画偏移（用于溶解贴图）
     vec2 uvOffset = v_uv0 + cc_time.x * uvSpeed;
     uvOffset.x = fract(uvOffset.x);
     uvOffset.y = fract(uvOffset.y);
     vec4 dissolveColor = texture(dissolveMap, uvOffset);
     
-    float dissolveValue = dissolveColor.r;
+    // 为每个碎片生成不同的溶解阈值偏移（使碎片有独立的溶解进度）
+    float fragmentDissolveOffset = (fragmentRandom4 - 0.5) * 0.3;
+    float dissolveValue = dissolveColor.r - fragmentDissolveOffset;
     
     // 计算边缘区域（使用smoothstep实现平滑过渡）
     float edgeStart = dissolveThreshold;
     float edgeEnd = dissolveThreshold + edgeWidth;
-    float edgeFactor = smoothstep(edgeStart, edgeEnd, dissolveValue);
+    // float edgeFactor = smoothstep(edgeStart, edgeEnd, dissolveValue);
     
     // 如果完全溶解，则舍弃像素
     if(dissolveValue < dissolveThreshold){
@@ -112,8 +177,24 @@ CCProgram fs %{
       // 边缘颜色混合强度：越靠近阈值越强
       float edgeBlend = smoothstep(edgeEnd, edgeStart, dissolveValue);
       o.rgb = mix(o.rgb, edgeColor.rgb, edgeBlend * edgeColor.a * glowFactor);
-      // 增强边缘亮度
-      o.rgb += edgeColor.rgb * glowFactor * 0.5;
+      
+      // 增强燃烧效果
+      float burnEffect = pow(edgeBlend, 0.5) * burnIntensity;
+      o.rgb += edgeColor.rgb * burnEffect * glowFactor;
+      
+      // 添加火花效果
+      float sparkle = sin(cc_time.x * 20.0 + v_uv0.x * 50.0 + v_uv0.y * 30.0) * 0.5 + 0.5;
+      sparkle = pow(sparkle, 3.0) * sparkleIntensity * edgeBlend;
+      o.rgb += vec3(1.0, 0.8, 0.2) * sparkle * glowFactor;
+    }
+    
+    // 碎片边界增强效果（在碎片边缘增强燃烧）
+    vec2 fragmentEdgeDist = min(fragmentLocalUV, 1.0 - fragmentLocalUV);
+    float edgeFactor = min(fragmentEdgeDist.x, fragmentEdgeDist.y) * 2.0 / fragmentSize;
+    if(edgeFactor < 0.1 && glowFactor > 0.0) {
+      float edgeGlow = 1.0 - edgeFactor * 10.0;
+      edgeGlow = max(0.0, edgeGlow);
+      o.rgb += edgeColor.rgb * edgeGlow * burnIntensity * 0.3;
     }
 
     gl_FragColor = o.rgba;

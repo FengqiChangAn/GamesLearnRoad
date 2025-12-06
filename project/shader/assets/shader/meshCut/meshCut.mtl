@@ -1,0 +1,39 @@
+{
+  "__type__": "cc.Material",
+  "_name": "meshCut",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "48a97c69-4d80-4df5-8925-d759c66a5109"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      },
+      "props": {
+        "meshColor": {
+          "__type__": "cc.Color",
+          "r": 53,
+          "g": 198,
+          "b": 204,
+          "a": 255
+        },
+        "meshIntensity": 0.01,
+        "meshDistance": 12,
+        "texture": {
+          "__uuid__": "52937773-b79d-4cf6-9ab2-34d2f4b63cb0"
+        },
+        "edgeColor": {
+          "__type__": "cc.Color",
+          "r": 136,
+          "g": 136,
+          "b": 136,
+          "a": 255
+        },
+        "meshAlpha": 1
+      }
+    }
+  }
+}

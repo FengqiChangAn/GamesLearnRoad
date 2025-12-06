@@ -1,0 +1,107 @@
+ 
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: vs
+      frag: fs
+      blendState:
+        targets:
+        - blend: true
+      rasterizerState:
+        cullMode: none
+      properties:
+        texture: { value: white }
+        defaultDistance: { value: 0.0, slider: true, editor: { range: [0.0, 1.0, 0.01] } } #默认的距离, 即偏移值
+        meshDistance:  { value: 5.0, slider: true, editor: { range: [0.0, 100.0, 1.0] } } # 网格间的距离
+        meshIntensity: { value: 0.01, slider: true, editor: { range: [0, 0.05, 0.005]}} #网格线的强度，即宽度
+        meshAlpha:  { value: 1.0, slider: true, editor: { range: [0, 1.0, 0.01] } } #网格线的透明度
+        edgeWidth: { value: 0.1, slider: true, editor: { range: [0, 0.1, 0.01] } } # 边缘宽度
+        glowIntensity: { value: 1.0, slider: true, editor: { range: [0, 3, 0.1] } } # 发光强度
+        edgeColor: { value: [1.0, 1.0, 1.0, 1.0], editor: { type: color } } # 边缘颜色（默认白色）
+        meshColor: { value: [1.0, 1.0, 1.0, 1.0], editor: { type: color } } # 网格颜色（默认白色）
+}%
+
+CCProgram vs %{
+  precision highp float;
+ 
+  #include <cc-global>
+  #include <cc-local>
+ 
+  in vec3 a_position;
+  in vec4 a_color;
+  out vec4 v_color;
+ 
+  in vec2 a_uv0;
+  out vec2 v_uv0;
+ 
+  void main () {
+    vec4 pos = vec4(a_position, 1);
+ 
+    pos = cc_matViewProj * pos;
+ 
+    v_uv0 = a_uv0;
+ 
+    v_color = a_color;
+ 
+    gl_Position = pos;
+  }
+}%
+
+CCProgram fs %{
+precision highp float;
+
+#include <alpha-test>
+#include <texture>
+
+in vec4 v_color; //输入顶点颜色
+uniform MeshUniforms{
+    float meshAlpha;
+    float meshIntensity;
+    float edgeWidth;
+    float glowIntensity;
+    float defaultDistance;
+    float meshDistance;
+};
+
+uniform ColorUniforms{
+    vec4 edgeColor;
+    vec4 meshColor;
+};
+
+#if USE_TEXTURE
+  in vec2 v_uv0; //输入纹理坐标
+  uniform sampler2D texture; //纹理采样器
+#endif
+
+void main() {
+  vec4 o = vec4(1, 1, 1, 1); //初始化颜色为白色
+  
+  #if USE_TEXTURE
+    o *= texture(texture, v_uv0); //将纹理颜色乘以纹理采样器，得到纹理颜色
+    #if CC_USE_ALPHA_ATLAS_TEXTURE
+      o.a *= texture2D(texture, v_uv0 + vec2(0, 0.5)).r; //如果使用alpha纹理，将alpha值乘以纹理采样器
+    #endif
+  #endif
+
+  float Dx = v_uv0.x - defaultDistance;
+  float Dy = v_uv0.y - defaultDistance;
+  float RangeX = mod(Dx * 100.0, meshDistance) / 100.0;
+  float RangeY = mod(Dy * 100.0, meshDistance) / 100.0;
+  if(RangeX < meshIntensity){
+    o *= meshColor;
+    o.a = meshAlpha;
+  }
+  if(RangeY < meshIntensity){
+    o *= meshColor;
+    o.a = meshAlpha;
+  }
+  
+  ALPHA_TEST(o); //进行alpha测试
+  
+  #if USE_BGRA
+    gl_FragColor = o.bgra;
+  #else
+    gl_FragColor = o.rgba;
+  #endif
+}
+}%

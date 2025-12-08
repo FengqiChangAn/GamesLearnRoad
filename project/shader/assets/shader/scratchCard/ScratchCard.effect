@@ -1,0 +1,119 @@
+CCEffect %{
+  techniques:
+  # 第一个Pass：绘制笔刷到缓存纹理（brush pass）
+  - name: brush
+    passes:
+    - vert: vs
+      frag: fs_brush  # 对应CCProgram fs_brush
+      blendState:
+        targets:
+        - blend: true
+          srcBlend: src_alpha
+          dstBlend: one_minus_src_alpha
+          srcBlendAlpha: src_alpha
+          dstBlendAlpha: one_minus_src_alpha
+      rasterizerState:
+        cullMode: none
+      properties:
+        cacheTexture: { value: white }
+        brushTexture: { value: white }
+        brushPos: { value: [0.0, 0.0] }
+        brushSize: { value: 0.1 }
+  # 第二个Pass：渲染刮刮乐最终效果（main pass）
+  - name: main
+    passes:
+    - vert: vs
+      frag: fs_main  # 对应CCProgram fs_main
+      blendState:
+        targets:
+        - blend: true
+          srcBlend: src_alpha
+          dstBlend: one_minus_src_alpha
+          srcBlendAlpha: src_alpha
+          dstBlendAlpha: one_minus_src_alpha
+      rasterizerState:
+        cullMode: none
+      properties:
+        baseTexture: { value: white }
+        coatingTexture: { value: white }
+        cacheTexture: { value: white }
+}%
+
+CCProgram vs %{
+  precision highp float;
+  #include <cc-global>
+  #include <cc-local>
+
+  in vec3 a_position;
+  in vec4 a_color;
+  in vec2 a_uv0;
+
+  out vec4 v_color;
+  out vec2 v_uv0;
+
+  void main () {
+    vec4 pos = cc_matViewProj * vec4(a_position, 1.0);
+    gl_Position = pos;
+    v_uv0 = a_uv0;
+    v_color = a_color;
+  }
+}%
+
+CCProgram fs_brush %{
+  precision highp float;
+  #include <texture>
+
+  in vec2 v_uv0;
+  in vec4 v_color;
+
+  uniform sampler2D cacheTexture;
+  uniform sampler2D brushTexture;
+  uniform Uniform {
+    vec2 brushPos;
+    float brushSize;
+  };
+
+  void main() {
+    // 计算片元到笔刷中心的纹理坐标偏移
+    vec2 uv = (v_uv0 - brushPos) / brushSize;
+    uv += 0.5; // 笔刷纹理的中心对齐
+    vec4 brushCol = texture(brushTexture, uv);
+    
+    // 采样缓存纹理的当前值（Alpha通道记录刮开程度，1=未刮开，0=刮开）
+    vec4 cacheCol = texture(cacheTexture, v_uv0);
+    
+    // 笔刷的Alpha通道作为擦除强度（白色区域擦除，黑色不擦除）
+    float erase = 1.0 - brushCol.r; // 假设笔刷纹理是灰度图，r通道为强度
+    cacheCol.a = max(0.0, cacheCol.a - erase * 0.5); // 递减Alpha，0.5为擦除速度
+    
+    gl_FragColor = cacheCol;
+  }
+}%
+
+CCProgram fs_main %{
+  precision highp float;
+  #include <texture>
+
+  in vec2 v_uv0;
+  in vec4 v_color;
+
+  uniform sampler2D baseTexture;
+  uniform sampler2D coatingTexture;
+  uniform sampler2D cacheTexture;
+
+  void main() {
+    // 采样缓存纹理（Alpha=1：未刮开，Alpha=0：刮开）
+    vec4 cacheCol = texture(cacheTexture, v_uv0);
+    float mask = cacheCol.a; // 遮罩系数
+    
+    // 采样底图和涂层
+    vec4 baseCol = texture(baseTexture, v_uv0) * v_color;
+    vec4 coatingCol = texture(coatingTexture, v_uv0) * v_color;
+    
+    // 混合：mask=1时显示涂层，mask=0时显示底图
+    vec4 finalCol = mix(baseCol, coatingCol, mask);
+    
+    ALPHA_TEST(finalCol.a);
+    gl_FragColor = finalCol;
+  }
+}%

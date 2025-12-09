@@ -1,119 +1,106 @@
 CCEffect %{
-  techniques:
-  # 第一个Pass：绘制笔刷到缓存纹理（brush pass）
-  - name: brush
-    passes:
-    - vert: vs
-      frag: fs_brush  # 对应CCProgram fs_brush
-      blendState:
-        targets:
-        - blend: true
-          srcBlend: src_alpha
-          dstBlend: one_minus_src_alpha
-          srcBlendAlpha: src_alpha
-          dstBlendAlpha: one_minus_src_alpha
-      rasterizerState:
-        cullMode: none
-      properties:
-        cacheTexture: { value: white }
-        brushTexture: { value: white }
-        brushPos: { value: [0.0, 0.0] }
-        brushSize: { value: 0.1 }
-  # 第二个Pass：渲染刮刮乐最终效果（main pass）
-  - name: main
-    passes:
-    - vert: vs
-      frag: fs_main  # 对应CCProgram fs_main
-      blendState:
-        targets:
-        - blend: true
-          srcBlend: src_alpha
-          dstBlend: one_minus_src_alpha
-          srcBlendAlpha: src_alpha
-          dstBlendAlpha: one_minus_src_alpha
-      rasterizerState:
-        cullMode: none
-      properties:
-        baseTexture: { value: white }
-        coatingTexture: { value: white }
-        cacheTexture: { value: white }
+techniques:
+  - passes:
+      - vert: vs
+        frag: fs
+        blendState:
+          targets:
+            - blend: true
+        rasterizerState:
+          cullMode: none
+        properties:
+          texture: { value: white } # 默认纹理（兼容 Cocos Creator 系统）
+          coatingTexture: { value: white } # 涂层
+          cacheTexture: { value: white } # 缓存贴图，用于缓存笔刷滑过的痕迹
+          brushTexture: { value: white } # 笔刷贴图
+          brushX: { value: 0.0 }
+          brushY: { value: 0.0 }
+
 }%
 
 CCProgram vs %{
-  precision highp float;
-  #include <cc-global>
-  #include <cc-local>
+precision highp float;
 
-  in vec3 a_position;
-  in vec4 a_color;
-  in vec2 a_uv0;
+#include <cc-global>
+#include <cc-local>
 
-  out vec4 v_color;
-  out vec2 v_uv0;
+in vec3 a_position;
+in vec4 a_color;
+out vec4 v_color;
 
-  void main () {
-    vec4 pos = cc_matViewProj * vec4(a_position, 1.0);
-    gl_Position = pos;
-    v_uv0 = a_uv0;
-    v_color = a_color;
-  }
+in vec2 a_uv0;
+out vec2 v_uv0;
+
+void main() {
+  vec4 pos = vec4(a_position, 1);
+  
+  pos = cc_matViewProj * pos;
+  
+  v_uv0 = a_uv0;
+  
+  v_color = a_color;
+  
+  gl_Position = pos;
+}
 }%
 
-CCProgram fs_brush %{
-  precision highp float;
-  #include <texture>
+CCProgram fs %{
+precision highp float;
 
-  in vec2 v_uv0;
-  in vec4 v_color;
+#include <alpha-test>
+#include <texture>
 
-  uniform sampler2D cacheTexture;
-  uniform sampler2D brushTexture;
-  uniform Uniform {
-    vec2 brushPos;
-    float brushSize;
-  };
+in vec4 v_color; //输入顶点颜色
 
-  void main() {
-    // 计算片元到笔刷中心的纹理坐标偏移
-    vec2 uv = (v_uv0 - brushPos) / brushSize;
-    uv += 0.5; // 笔刷纹理的中心对齐
-    vec4 brushCol = texture(brushTexture, uv);
-    
-    // 采样缓存纹理的当前值（Alpha通道记录刮开程度，1=未刮开，0=刮开）
-    vec4 cacheCol = texture(cacheTexture, v_uv0);
-    
-    // 笔刷的Alpha通道作为擦除强度（白色区域擦除，黑色不擦除）
-    float erase = 1.0 - brushCol.r; // 假设笔刷纹理是灰度图，r通道为强度
-    cacheCol.a = max(0.0, cacheCol.a - erase * 0.5); // 递减Alpha，0.5为擦除速度
-    
-    gl_FragColor = cacheCol;
+//用于设置笔刷的坐标
+uniform customUniform {
+  float brushX;
+  float brushY;
+};
+
+in vec2 v_uv0; //输入纹理坐标
+uniform sampler2D coatingTexture; //涂层纹理
+uniform sampler2D texture; //底层纹理
+uniform sampler2D brushTexture; //笔刷贴图
+uniform sampler2D cacheTexture; //缓存贴图
+
+void main() {
+  // 采样各纹理
+  vec4 coatingColor = texture(coatingTexture, v_uv0); //涂层颜色（遮盖层，如灰色磨砂效果）
+  vec4 baseColor = texture(texture, v_uv0); //底层颜色（内容层，如中奖信息）
+  vec4 cacheColor = texture(cacheTexture, v_uv0); //缓存贴图（记录刮擦痕迹，通过RenderTexture实时绘制）
+  
+  // 计算刮擦程度：缓存贴图的alpha值表示该区域被刮除的程度
+  // cacheColor.a = 0.0 表示未刮过，完全显示涂层
+  // cacheColor.a = 1.0 表示已刮过，完全显示底层
+  // cacheColor.a 在 0-1 之间表示部分刮除，用于平滑过渡
+  float scratchAmount = cacheColor.a;
+  
+  vec2 brushUV = v_uv0 * 10.0 + vec2(brushX, brushY); // 只采样（0-0.1）范围内的像素，相当于把笔刷贴图缩小10倍
+  vec4 brushColor = texture(brushTexture, brushUV);
+  // 如果笔刷UV超出范围，则不采样
+  if (brushUV.x < 0.0 || brushUV.x > 1.0 || brushUV.y < 0.0 || brushUV.y > 1.0) {
+    brushColor = vec4(0, 0, 0, 0);
   }
-}%
-
-CCProgram fs_main %{
-  precision highp float;
-  #include <texture>
-
-  in vec2 v_uv0;
-  in vec4 v_color;
-
-  uniform sampler2D baseTexture;
-  uniform sampler2D coatingTexture;
-  uniform sampler2D cacheTexture;
-
-  void main() {
-    // 采样缓存纹理（Alpha=1：未刮开，Alpha=0：刮开）
-    vec4 cacheCol = texture(cacheTexture, v_uv0);
-    float mask = cacheCol.a; // 遮罩系数
-    
-    // 采样底图和涂层
-    vec4 baseCol = texture(baseTexture, v_uv0) * v_color;
-    vec4 coatingCol = texture(coatingTexture, v_uv0) * v_color;
-    
-    // 混合：mask=1时显示涂层，mask=0时显示底图
-    vec4 finalCol = mix(baseCol, coatingCol, mask);
-    
-    ALPHA_TEST(finalCol.a);
-    gl_FragColor = finalCol;
+  
+  // 根据刮擦程度混合涂层和底层
+  // scratchAmount = 0.0 时完全显示涂层，scratchAmount = 1.0 时完全显示底层
+  vec4 finalColor = mix(coatingColor, baseColor, scratchAmount);
+  
+  // 可选：实时笔刷预览（只在未刮除的区域显示笔刷预览）
+  // 如果已经刮除了，就不显示笔刷预览
+  if (scratchAmount < 0.01 && brushColor.a > 0.01) {
+    // 在未刮除的区域显示笔刷预览（半透明）
+    finalColor = mix(finalColor, brushColor, brushColor.a * 0.3);
   }
+  
+  // 应用顶点颜色
+  finalColor *= v_color;
+  
+  #if USE_BGRA
+    gl_FragColor = finalColor.bgra;
+  #else
+    gl_FragColor = finalColor.rgba;
+  #endif
+}
 }%

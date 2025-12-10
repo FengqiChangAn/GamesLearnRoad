@@ -1,0 +1,25 @@
+{
+  "name": "cocos_inspector",
+  "version": "1.8.2",
+  "description": "Cocos Runtime Inspector",
+  "author": "chuan.zhang",
+  "main": "main.js",
+  "scene-script": "scene-script.js",
+  "main-menu": {
+    "i18n:MAIN_MENU.package.title/Cocos Inspector/preview Mode": {
+      "message": "cocos_inspector:previewMode",
+      "accelerator": "alt+o"
+    },
+    "i18n:MAIN_MENU.package.title/Cocos Inspector/build Mode": {
+      "message": "cocos_inspector:buildMode"
+    },
+    "i18n:MAIN_MENU.package.title/Cocos Inspector/open Custom Page": {
+      "message": "cocos_inspector:openCustomPage"
+    },
+    "i18n:MAIN_MENU.package.title/Cocos Inspector/refresh": {
+      "message": "cocos_inspector:refresh"
+    }
+  },
+  "dependencies": {},
+  "_storeId": "d0c3e952a1be7743601ddd3015256b9e"
+}

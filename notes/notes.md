@@ -1,4 +1,5 @@
 # 笔记
+
 记录一些零碎的知识点、遇到的问题、撰写的文章等
 
 每周投入至少20小时，按「2天理论学习+3天项目实践+2天代码重构」的循环推进。
@@ -29,6 +30,14 @@
 - 常用UI解决方案
 - cocos优化专精
 - cocos渲染管线详解
+- 自定义扩展组件调研
+- cocos基于ECS的渲染框架
+- 字体渲染原理
+- 帧同步实践
+- webGL从零解析
+- 线性代数在游戏开发中的实际应用
+- AI工作流探索
+- 资源管理全解
 
 ## 游戏开发
 
@@ -38,6 +47,9 @@
 - [Unity 文档](https://docs.unity3d.com/)
 - [Godot 文档](https://docs.godotengine.org/)
 - [Unreal Engine 文档](https://docs.unrealengine.com/)
+- [https://forum.cocos.org/t/topic/139322](黑边修复)
+- [https://gitee.com/ruanwujing](cocos工具)
+- [forum.cocos.org](https://forum.cocos.org/t/cocos-creator-inspector/91178 "扩展内置组件")
 
 ### 游戏开发工具
 

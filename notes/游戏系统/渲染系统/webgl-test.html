@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <title>WebGL 画100个三角形</title>
+        <style>
+            body { margin: 0;}
+            canvas { display: block; background: #f5f5f5;}
+        </style>
+    </head>
+    <body>
+        <canvas id="webglCanvas" width="800" height="600"></canvas>
+
+        <script>
+            //步骤1：获取Canvas和WebGL上下文
+            const canvas = document.getElementById("webglCanvas");
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+            //检查WebGl是否可用
+            if(!gl){
+                alert('你的浏览器不支持WebGL');
+                throw new Error('WebGL is not supported');
+            }
+
+            //步骤2：编写GLSL着色器代码
+            //顶点着色器: 处理顶点位置和颜色
+            const vertexShaderSource = `
+                attribute vec2 a_Position; //顶点位置
+                attribute vec3 a_Color;    //顶点颜色
+                varying vec3 v_Color;      //传递给片段着色器的颜色
+                void main(){
+                    gl_Position = vec4(a_Position, 0.0, 1.0);// 转4D坐标（WebGL要求）
+                    v_Color= a_Color;      // 传递颜色到片段着色器
+                }
+            `;
+
+            //片段着色器：处理像素颜色
+            const fragmentShaderSource = `
+                precision mediump float;  // 精度声明（移动端必加）
+                varying vec3 v_Color;     // 接受来自顶点着色器的颜色
+                void main(){
+                    gl_FragColor = vec4(v_Color, 1.0); // 输出像素颜色(RGBA)
+                }
+            `;
+
+            //步骤三：编译链接着色器，创建Program
+            function initShaderProgram(gl, vsSource, fsSource){
+                //编译单个着色器
+                function compileShader(gl, type, source){
+                    const shader = gl.createShader(type);
+                    gl.shaderSource(shader, source);
+                    gl.compileShader(shader);
+
+                    //检查编译错误
+                    if(!gl.getShaderParameter(shader, gl.COMPILE_STATUS)){
+                        console.error('着色器编译失败:', gl.getShaderInfoLog(shader));
+                        gl.deleteShader(shader);
+                        return null;
+                    }
+                    return shader;
+                }
+
+                //编译顶点/片段着色器
+                const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vsSource);
+                const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER,fsSource);
+
+                //创建并链接Program
+                const program = gl.createProgram();
+                gl.attachShader(program, vertexShader);
+                gl.attachShader(program, fragmentShader);
+                gl.linkProgram(program);
+
+                //检查链接错误
+                if(!gl.getProgramParameter(program, gl.LINK_STATUS)){
+                    console.error('Program链接失败:', gl.getProgramInfoLog(program))
+                    gl.deleteProgram(program);
+                    return null;
+                }
+
+                //清理临时着色器
+                gl.deleteShader(vertexShader);
+                gl.deleteShader(fragmentShader);
+
+                return program;
+            }
+
+            const program = initShaderProgram(gl, vertexShaderSource, fragmentShaderSource);
+            if(!program){
+                alert('着色器程序初始化失败');
+                throw new Error('着色器程序初始化失败');
+            }
+
+            //步骤4：生成100个三角形的顶点数据（位置+颜色）
+            const TRIANGLE_COUNT = 100; //三角形数量
+            const VERTEX_PER_TRIANGLE = 3; //每个三角形的顶点
+            const DATA_PER_VERTEX = 5; //每个顶点：2个位置值（x，y）+3个颜色值（r，g，b）
+            const totalDataCount = TRIANGLE_COUNT * VERTEX_PER_TRIANGLE * DATA_PER_VERTEX;
+
+            //创建浮点数组存储顶点数据
+            const vertexData = new Float32Array(totalDataCount);
+
+            //生成随机数据
+            for(let i = 0; i < TRIANGLE_COUNT; i++){
+                // 每个三角形的基础偏移（随机位置中心）
+                const baseX = (Math.random() - 0.5) * 1.8;// 范围：-0.9 ~ 0.9（避免超出画布）
+                const baseY = (Math.random() - 0.5) * 1.8;
+                //随机三角形大小
+                const size = Math.random() * 0.1 + 0.02;// 0.02 ~ 0.12
+                //随机颜色
+                const r = Math.random();
+                const g = Math.random();
+                const b = Math.random();
+                
+                //每个三角形的三个顶点（相对中心的偏移）
+                const triangleVertices = [
+                    0, size,        //上
+                    -size, -size,   //左下
+                    size, -size     //右下
+                ]
+
+                //填充顶点数据到数组
+                for(let j = 0; j< VERTEX_PER_TRIANGLE; j++){
+                    const dataIndex = (i * VERTEX_PER_TRIANGLE + j) * DATA_PER_VERTEX;
+                    //位置（基础偏移 + 相对偏移）
+                    vertexData[dataIndex] = baseX + triangleVertices[j * 2];
+                    vertexData[dataIndex + 1] = baseY + triangleVertices[j * 2 + 1];
+                    // 颜色（每个顶点用相同的随机颜色）
+                    vertexData[dataIndex + 2] = r;
+                    vertexData[dataIndex + 3] = g;
+                    vertexData[dataIndex + 4] = b;
+                }
+            }
+
+            // 步骤五：创建并绑定顶点缓冲区（VBO）
+            const vertexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);//把数据传入GPU
+
+            // 步骤六：关联着色器的attribute变量
+            //获取attribute变量的位置
+            const a_Position = gl.getAttribLocation(program, 'a_Position');
+            const a_Color = gl.getAttribLocation(program, 'a_Color')
+
+            //设置顶点属性指针（告诉GPU如何解析缓冲区数据）
+            const STRIDE = DATA_PER_VERTEX * Float32Array.BYTES_PER_ELEMENT;// 每个顶点的字节数
+            //位置属性：2个浮点数，跳过0字节，步长STRIDE
+            gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, STRIDE, 0);
+            gl.enableVertexAttribArray(a_Position);
+            //颜色属性：3个浮点数，跳过2个浮点数（8字节），步长STRIDE
+            gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, STRIDE, 2 * Float32Array.BYTES_PER_ELEMENT);
+            gl.enableVertexAttribArray(a_Color);
+
+            //步骤7
+            //清空背景换色
+            gl.clearColor(0.95, 0.95, 0.95, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.useProgram(program);
+            gl.drawArrays(gl.TRIANGLES, 0, TRIANGLE_COUNT * VERTEX_PER_TRIANGLE);
+        </script>
+    </body>
+</html>
